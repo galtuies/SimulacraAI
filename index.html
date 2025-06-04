@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SimulacraAI Gelişmiş Arayüz Demosu</title>
+    <style>
+        /* CSS Stilleri öncekiyle aynı kalacak, sadece birkaç küçük ekleme/değişiklik olabilir. */
+        /* Önceki CSS kodunu buraya yapıştırın. Eğer spesifik bir değişiklik gerekirse aşağıda belirteceğim. */
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 255, 255, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 20px rgba(0, 255, 255, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 255, 255, 0); }
+        }
+
+        @keyframes pulseProcessing { /* "Düşünme" sırasındaki pulse animasyonu */
+            0% { transform: scale(1); box-shadow: 0 0 0 5px rgba(100, 255, 255, 0.8); }
+            50% { transform: scale(1.05); box-shadow: 0 0 0 15px rgba(100, 255, 255, 0.2); }
+            100% { transform: scale(1); box-shadow: 0 0 0 5px rgba(100, 255, 255, 0.8); }
+        }
+
+
+        @keyframes dataStream {
+            0% { transform: translateY(-100%); opacity: 0; }
+            50% { opacity: 0.8; }
+            100% { transform: translateY(100vh); opacity: 0; }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            color: #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .data-stream-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            transition: opacity 0.5s ease; /* Yoğunlaşma efekti için */
+        }
+        .data-stream-container.processing {
+            opacity: 1; /* "Düşünme" sırasında daha yoğun */
+        }
+
+
+        .data-particle {
+            position: absolute;
+            width: 2px;
+            height: 20px;
+            background-color: rgba(0, 255, 255, 0.3);
+            border-radius: 1px;
+            animation: dataStream 5s linear infinite;
+        }
+
+        #main-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            z-index: 1;
+            padding: 20px;
+            animation: fadeIn 1s ease-out;
+        }
+
+        #ai-core {
+            width: 150px;
+            height: 150px;
+            background: radial-gradient(circle, rgba(0,200,255,0.8) 0%, rgba(0,100,150,0.5) 70%, rgba(0,50,100,0.2) 100%);
+            border-radius: 50%;
+            margin-bottom: 30px;
+            animation: pulse 3s infinite ease-in-out; /* Varsayılan animasyon */
+            box-shadow: 0 0 30px rgba(0, 200, 255, 0.5), 0 0 60px rgba(0, 150, 200, 0.3);
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        #ai-core.processing {
+            animation: pulseProcessing 1s infinite ease-in-out; /* "Düşünme" animasyonu */
+        }
+
+        #ai-core:hover:not(.processing) { /* Sadece normal durumda hover efekti */
+            transform: scale(1.1);
+            box-shadow: 0 0 40px rgba(0, 220, 255, 0.7), 0 0 80px rgba(0, 180, 230, 0.5);
+        }
+
+        #ai-core::before, #ai-core::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 120%;
+            height: 120%;
+            border: 2px solid rgba(0, 255, 255, 0.2);
+            border-radius: 50%;
+            transform: translate(-50%, -50%) rotate(0deg);
+            animation: spin 10s linear infinite;
+        }
+        #ai-core.processing::before, #ai-core.processing::after {
+            animation-duration: 3s; /* "Düşünme" sırasında daha hızlı dönme */
+        }
+
+        #ai-core::after {
+            width: 140%;
+            height: 140%;
+            border-width: 1px;
+            animation: spin 15s linear infinite reverse;
+        }
+        @keyframes spin {
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            color: #fff;
+            text-shadow: 0 0 10px rgba(0, 200, 255, 0.7);
+            font-weight: 300;
+        }
+
+        p.subtitle {
+            font-size: 1.1em;
+            margin-bottom: 30px;
+            color: #c0c0c0;
+            max-width: 600px;
+        }
+
+        #input-area {
+            display: flex;
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 20px;
+        }
+
+        #user-input {
+            flex-grow: 1;
+            padding: 15px 20px;
+            font-size: 1em;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-right: none;
+            border-radius: 25px 0 0 25px;
+            background-color: rgba(20, 20, 50, 0.5);
+            color: #e0e0e0;
+            outline: none;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+        #user-input:focus {
+            background-color: rgba(30, 30, 70, 0.7);
+            border-color: rgba(0, 255, 255, 0.7);
+        }
+        #user-input::placeholder {
+            color: #888;
+        }
+        #user-input:disabled {
+            background-color: rgba(50, 50, 80, 0.4);
+            cursor: not-allowed;
+        }
+
+
+        #submit-button {
+            padding: 15px 25px;
+            font-size: 1em;
+            background-color: rgba(0, 200, 255, 0.7);
+            color: #0f0c29;
+            border: none;
+            border-radius: 0 25px 25px 0;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            font-weight: bold;
+        }
+        #submit-button:hover:not(:disabled) {
+            background-color: rgba(0, 255, 255, 1);
+        }
+        #submit-button:disabled {
+            background-color: rgba(0, 150, 200, 0.4);
+            cursor: not-allowed;
+        }
+
+
+        #response-area {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            width: 100%;
+            max-width: 600px;
+            min-height: 50px;
+            border: 1px solid rgba(0, 255, 255, 0.1);
+            color: #b0e0e6;
+            text-align: left;
+            font-style: italic;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.5s ease, transform 0.5s ease, min-height 0.3s ease;
+        }
+
+        #response-area.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        #response-area.processing-text { /* "Düşünme" aşamasındaki metinler için stil */
+            color: #88ddff;
+            font-style: normal;
+            font-weight: bold;
+        }
+
+
+        .memory-traces-container {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 1;
+        }
+
+        .memory-trace {
+            padding: 10px 15px;
+            background-color: rgba(0, 150, 200, 0.2);
+            border: 1px solid rgba(0, 200, 255, 0.3);
+            border-radius: 5px;
+            color: #a0d8ef;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.3s;
+        }
+        .memory-trace:hover {
+            background-color: rgba(0, 180, 230, 0.4);
+            transform: translateY(-3px);
+        }
+
+        .disclaimer {
+            position: fixed;
+            bottom: 5px;
+            right: 10px;
+            font-size: 0.7em;
+            color: rgba(255, 255, 255, 0.3);
+            z-index: 100;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="data-stream-container" id="dataStreamContainer">
+        <!-- Veri parçacıkları JavaScript ile eklenecek -->
+    </div>
+
+    <div id="main-container">
+        <div id="ai-core" title="SimulacraAI Çekirdeği"></div>
+        <h1>SimulacraAI</h1>
+        <p class="subtitle">Bilincin Yankısı. Her soru bir keşif, her cevap bir başlangıç.</p>
+
+        <div id="input-area">
+            <input type="text" id="user-input" placeholder="Simulacra'ya sorun...">
+            <button id="submit-button">Gönder</button>
+        </div>
+
+        <div id="response-area">
+            <!-- Yapay Zeka yanıtı (demo) buraya gelecek -->
+        </div>
+    </div>
+
+    <div class="memory-traces-container">
+        <div class="memory-trace" data-query="Evrenin sırları nelerdir?">Evrenin Sırları</div>
+        <div class="memory-trace" data-query="Yaratıcılık nasıl geliştirilir?">Yaratıcılık</div>
+        <div class="memory-trace" data-query="Geleceğin teknolojileri neler olacak?">Gelecek Teknolojileri</div>
+    </div>
+
+    <div class="disclaimer">Uyarı: Bu bir demo arayüzüdür. Gerçek AI yetenekleri yoktur.</div>
+
+    <script>
+        const userInput = document.getElementById('user-input');
+        const submitButton = document.getElementById('submit-button');
+        const responseArea = document.getElementById('response-area');
+        const aiCore = document.getElementById('ai-core');
+        const dataStreamContainer = document.getElementById('dataStreamContainer');
+        const memoryTraces = document.querySelectorAll('.memory-trace');
+
+        const demoResponses = [
+            "Bu gerçekten düşündürücü bir nokta. Farklı açılardan değerlendiriyorum.",
+            "Kapsamlı veri analizim sonucunda, bu konuda birkaç olası senaryo belirledim.",
+            "İnsanlığın kolektif bilgelik havuzunda bu soruya dair ilginç yansımalar buldum.",
+            "Bu konseptin altında yatan temel prensipleri inceliyorum. Sonuçlarımı yakında paylaşacağım.",
+            "Sorunuz, evrenin karmaşıklığına dair yeni bir pencere açıyor. Teşekkürler.",
+            "Simülasyonlarım tamamlanmak üzere... Lütfen biraz daha sabır.",
+            "Cevabın nüansları, beklentilerinizin ötesine geçebilir. Hazırlanıyorum.",
+            "Bağlantılar kuruldu, örüntüler tanımlandı. Cevap şekilleniyor."
+        ];
+
+        const processingSteps = [
+            "Sorgu Alındı: Veri akışları analiz ediliyor...",
+            "Nöral Ağlar Aktif: Anlamsal ayrıştırma başlatıldı...",
+            "Bilgi Katmanları Taranıyor: İlgili veri noktaları çıkarılıyor...",
+            "Olasılık Modelleri Çalıştırılıyor: En uygun yanıt yolu hesaplanıyor...",
+            "Cevap Sentezleniyor: Bilgiler anlamlı bir bütün haline getiriliyor..."
+        ];
+
+        let isProcessing = false;
+
+        function getRandomResponse() {
+            return demoResponses[Math.floor(Math.random() * demoResponses.length)];
+        }
+
+        function typeMessage(element, message, callback, isProcessingText = false) {
+            element.textContent = '';
+            element.classList.remove('visible');
+            if (isProcessingText) {
+                element.classList.add('processing-text');
+            } else {
+                element.classList.remove('processing-text');
+            }
+            
+            let i = 0;
+            function type() {
+                if (i < message.length) {
+                    element.textContent += message.charAt(i);
+                    i++;
+                    setTimeout(type, 25); // "Düşünme" metinleri için biraz daha hızlı
+                } else {
+                    if (callback) callback();
+                }
+            }
+            
+            setTimeout(() => {
+                element.classList.add('visible');
+                type();
+            }, 50);
+        }
+
+        async function simulateProcessingAndRespond(query) {
+            isProcessing = true;
+            userInput.disabled = true;
+            submitButton.disabled = true;
+            aiCore.classList.add('processing');
+            dataStreamContainer.classList.add('processing'); // Veri akışını yoğunlaştır
+            responseArea.style.minHeight = '70px'; // "Düşünme" metinleri için daha fazla yer
+
+            for (let i = 0; i < processingSteps.length; i++) {
+                await new Promise(resolve => {
+                    typeMessage(responseArea, processingSteps[i] + (i < processingSteps.length -1 ? "" : ""), () => {
+                        setTimeout(resolve, i < processingSteps.length -1 ? 1200 : 500); // Son adımda daha kısa bekle
+                    }, true);
+                });
+                if (!isProcessing) return; // Eğer işlem iptal edilirse (ileride eklenebilir)
+            }
+
+            const finalResponse = `"${query}" ile ilgili olarak... ` + getRandomResponse();
+            typeMessage(responseArea, finalResponse, () => {
+                isProcessing = false;
+                userInput.disabled = false;
+                submitButton.disabled = false;
+                aiCore.classList.remove('processing');
+                dataStreamContainer.classList.remove('processing');
+                responseArea.style.minHeight = '50px'; // Normal yüksekliğe dön
+            });
+        }
+
+        submitButton.addEventListener('click', () => {
+            if (isProcessing) return; // Zaten işlem yapılıyorsa tekrar başlatma
+            const query = userInput.value.trim();
+            if (query) {
+                simulateProcessingAndRespond(query);
+                userInput.value = '';
+            } else {
+                typeMessage(responseArea, "Lütfen bir soru sorun veya bir konu belirtin.");
+            }
+        });
+
+        userInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                submitButton.click();
+            }
+        });
+
+        aiCore.addEventListener('click', () => {
+            if (isProcessing) return;
+            typeMessage(responseArea, "SimulacraAI Çekirdeği aktif. Nöral ağlarım hizmetinizde. Dinliyorum...");
+        });
+
+        memoryTraces.forEach(trace => {
+            trace.addEventListener('click', () => {
+                if (isProcessing) return;
+                const query = trace.getAttribute('data-query');
+                userInput.value = query;
+                submitButton.click();
+            });
+        });
+
+        function createDataParticle() {
+            const particle = document.createElement('div');
+            particle.classList.add('data-particle');
+            particle.style.left = Math.random() * 100 + 'vw';
+            let duration = (Math.random() * 3 + 2);
+            if (dataStreamContainer.classList.contains('processing')) {
+                duration /= 2; // "Düşünme" sırasında parçacıklar daha hızlı
+            }
+            particle.style.animationDuration = duration + 's';
+            particle.style.animationDelay = Math.random() * duration + 's';
+            dataStreamContainer.appendChild(particle);
+            particle.addEventListener('animationend', () => particle.remove());
+        }
+
+        for (let i = 0; i < (dataStreamContainer.classList.contains('processing') ? 60 : 30); i++) {
+            createDataParticle();
+        }
+        setInterval(createDataParticle, dataStreamContainer.classList.contains('processing') ? 150 : 300);
+
+
+        console.log("SimulacraAI Gelişmiş Arayüz Demosu yüklendi.");
+    </script>
+</body>
+</html>
